@@ -43,6 +43,8 @@ dependencies {
     // When using the BoM, you don't specify versions in Firebase library dependencies
     implementation 'com.google.firebase:firebase-auth'
 
+    implementation 'com.android.volley:volley:1.2.0'
+
     implementation 'androidx.annotation:annotation:1.2.0'
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.3.1'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1'

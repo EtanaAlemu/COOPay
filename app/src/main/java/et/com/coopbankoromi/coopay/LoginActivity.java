@@ -16,13 +16,24 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthResult;
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
 import com.google.firebase.auth.FirebaseAuth;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import et.com.coopbankoromi.coopay.helper.VolleySingleton;
+import et.com.coopbankoromi.coopay.model.Customer;
+import et.com.coopbankoromi.coopay.util.URLs;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -65,30 +76,30 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void loginUser() {
-        String email, password;
+        String username, password;
 
         // Reset errors.
         mEmailTxt.setError(null);
         mPasswordTxt.setError(null);
-        boolean userAuthenticated = false;
+        final boolean[] userAuthenticated = {false};
 
         // Store values at the time of the login attempt.
-        email = mEmailTxt.getText().toString();
+        username = mEmailTxt.getText().toString();
         password = mPasswordTxt.getText().toString();
 
         boolean cancel = false;
         View focusView = null;
 
-        // Check for a valid email.
-        if (TextUtils.isEmpty(email)) {
-            mEmailTxt.setError(getString(R.string.error_field_required));
-            focusView = mEmailTxt;
-            cancel = true;
-        } else if (!isEmailValid(email)) {
-            mEmailTxt.setError(getString(R.string.error_invalid_email));
-            focusView = mEmailTxt;
-            cancel = true;
-        }
+//        // Check for a valid email.
+//        if (TextUtils.isEmpty(email)) {
+//            mEmailTxt.setError(getString(R.string.error_field_required));
+//            focusView = mEmailTxt;
+//            cancel = true;
+//        } else if (!isEmailValid(email)) {
+//            mEmailTxt.setError(getString(R.string.error_invalid_email));
+//            focusView = mEmailTxt;
+//            cancel = true;
+//        }
 
         // Check for a valid password, if the user entered one.
         if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
@@ -108,30 +119,110 @@ public class LoginActivity extends AppCompatActivity {
 
 
 //            AccountManage accountManage = new AccountManage(this);
-//            userAuthenticated = accountManage.loginUserWithEmail(email, password);
-//
-//            if (userAuthenticated) {
-//                startActivity(new Intent(LoginActivity.this, MainActivity.class));
-//            } else {
-//            Toast.makeText(LoginActivity.this, "email or password incorrect", Toast.LENGTH_LONG).show();
-//            }
+//            userAuthenticated = accountManage.loginUser(username, password);
 
-            mAuth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            StringRequest stringRequest = new StringRequest(Request.Method.POST, URLs.URL_LOGIN,
+                    new Response.Listener<String>() {
                         @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (task.isSuccessful()) {
-                                Toast.makeText(getApplicationContext(), "Login successful!", Toast.LENGTH_LONG).show();
-                                showProgress(false);
+                        public void onResponse(String response) {
 
-                                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                                startActivity(intent);
-                            } else {
-                                Toast.makeText(getApplicationContext(), "Login failed! Please try again later", Toast.LENGTH_LONG).show();
-                                showProgress(false);
+                            try {
+                                //converting response to json object
+                                JSONObject obj = new JSONObject(response);
+
+                                //if no error in response
+                                if (!obj.getBoolean("error")) {
+                                    Toast.makeText(getApplicationContext(), obj.getString("message"), Toast.LENGTH_SHORT).show();
+
+                                    //getting the user from the response
+                                    JSONObject userJson = obj.getJSONObject("user");
+
+                                    //creating a new user object
+                                    Customer user = new Customer(
+                                            userJson.getInt("id"),
+                                            userJson.getString("username"),
+                                            userJson.getString("email"),
+                                            userJson.getString("gender")
+                                    );
+
+                                    userAuthenticated[0] = true;
+
+                                    //starting the profile activity
+                                    Intent intent = new Intent(getApplicationContext(), DashboardActivity.class);
+                                    intent.putExtra("id", user.getId());
+                                    intent.putExtra("username", user.getUsername());
+                                    intent.putExtra("email", user.getEmail());
+                                    intent.putExtra("gender", user.getGender());
+                                    startActivity(intent);
+                                    finish();
+
+                                } else {
+                                    Toast.makeText(getApplicationContext(), obj.getString("message"), Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
                             }
                         }
-                    });
+                    },
+                    new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            Toast.makeText(getApplicationContext(), error.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    }) {
+                @Override
+                protected Map<String, String> getParams() throws AuthFailureError {
+                    Map<String, String> params = new HashMap<>();
+                    params.put("username", username);
+                    params.put("password", password);
+                    return params;
+                }
+            };
+
+            VolleySingleton.getInstance(this).addToRequestQueue(stringRequest);
+
+
+            if (userAuthenticated[0]) {
+                showProgress(false);
+                startActivity(new Intent(LoginActivity.this, MainActivity.class));
+            } else {
+                Toast.makeText(LoginActivity.this, "email or password incorrect", Toast.LENGTH_LONG).show();
+                showProgress(false);
+            }
+
+//            mAuth.signInWithEmailAndPassword(email, password)
+//                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+//                        @Override
+//                        public void onComplete(@NonNull Task<AuthResult> task) {
+//                            if (task.isSuccessful()) {
+//                                Toast.makeText(getApplicationContext(), "Login successful!", Toast.LENGTH_LONG).show();
+//                                showProgress(false);
+//
+//                                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                            } else {
+//                                Toast.makeText(getApplicationContext(), "Login failed! Please try again later", Toast.LENGTH_LONG).show();
+//                                showProgress(false);
+//                            }
+//                        }
+//                    });
+
+
+//            mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+//                @Override
+//                public void onComplete(@NonNull @NotNull Task<AuthResult> task) {
+//                    if (task.isSuccessful()) {
+//                                Toast.makeText(getApplicationContext(), "Register successful!", Toast.LENGTH_LONG).show();
+//                                showProgress(false);
+//
+//                                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                            } else {
+//                                Toast.makeText(getApplicationContext(), "Registration failed! Please try again later", Toast.LENGTH_LONG).show();
+//                                showProgress(false);
+//                            }
+//                }
+//            });
         }
     }
 
