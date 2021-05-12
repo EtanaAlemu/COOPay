@@ -1,10 +1,12 @@
-package et.com.coopbankoromi.coopay;
+package et.com.coopbankoromi.coopay.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import et.com.coopbankoromi.coopay.R;
 
 public class DashboardActivity extends AppCompatActivity {
 
@@ -20,8 +22,8 @@ public class DashboardActivity extends AppCompatActivity {
         genderTxt = findViewById(R.id.gender);
 
         Intent intent = getIntent();
-        idTxt.setText(intent.getIntExtra("id", -1));
         usernameTxt.setText(intent.getStringExtra("username"));
+        idTxt.setText(String.valueOf(intent.getIntExtra("id", -1)));
         emailTxt.setText(intent.getStringExtra("email"));
         genderTxt.setText(intent.getStringExtra("gender"));
 

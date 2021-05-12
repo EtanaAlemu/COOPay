@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -30,32 +31,90 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import et.com.coopbankoromi.coopay.helper.VolleySingleton;
 import et.com.coopbankoromi.coopay.model.Customer;
+import et.com.coopbankoromi.coopay.ui.DashboardActivity;
+import et.com.coopbankoromi.coopay.ui.SignupActivity;
 import et.com.coopbankoromi.coopay.util.URLs;
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements View.OnClickListener {
 
-    EditText mEmailTxt;
+    EditText mUsernameTxt;
     EditText mPasswordTxt;
+    TextView mSignUp;
+    TextView mForgetPassword;
     private FirebaseAuth mAuth;
     private ProgressBar mProgressBar;
     private LinearLayout mLoginFormView;
+    private View focusView;
+    private boolean cancel;
+    private Customer user;
+
+    public static boolean isValidUsername(String name) {
+
+        // Regex to check valid username.
+        String regex = "^[A-Za-z]\\w{5,29}$";
+
+        // Compile the ReGex
+        Pattern p = Pattern.compile(regex);
+
+        // If the username is empty
+        // return false
+        if (name == null) {
+            return false;
+        }
+
+        // Pattern class contains matcher() method
+        // to find matching between given username
+        // and regular expression.
+        Matcher m = p.matcher(name);
+
+        // Return if the username
+        // matched the ReGex
+        return m.matches();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        TextView mLoginBtn = findViewById(R.id.login_btn);
+        CardView mLoginBtn = findViewById(R.id.login_btn);
+        mSignUp = findViewById(R.id.sign_up_btn);
+        mForgetPassword = findViewById(R.id.forget_pass_btn);
 
-        mEmailTxt = findViewById(R.id.email_input);
+        mUsernameTxt = findViewById(R.id.username_input);
         mPasswordTxt = findViewById(R.id.pass_input);
         mProgressBar = findViewById(R.id.login_progress);
         mLoginFormView = findViewById(R.id.login_form);
+
+        focusView = null;
+        cancel = false;
 //
-        mAuth = FirebaseAuth.getInstance();
+//        mAuth = FirebaseAuth.getInstance();
+
+        mUsernameTxt.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
+                if (id == EditorInfo.IME_ACTION_DONE || id == EditorInfo.IME_NULL) {
+
+                    if (TextUtils.isEmpty(textView.getText().toString())) {
+                        mUsernameTxt.setError(getString(R.string.error_field_required));
+                        focusView = mUsernameTxt;
+                        focusView.requestFocus();
+                    } else if (!isValidUsername(textView.getText().toString())) {
+                        mUsernameTxt.setError(getString(R.string.error_invalid_username));
+                        focusView = mUsernameTxt;
+                        focusView.requestFocus();
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
 
         mPasswordTxt.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -67,29 +126,37 @@ public class LoginActivity extends AppCompatActivity {
                 return false;
             }
         });
-        mLoginBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                loginUser();
-            }
-        });
+        mLoginBtn.setOnClickListener(this);
+        mSignUp.setOnClickListener(this);
+        mForgetPassword.setOnClickListener(this);
+
     }
 
     private void loginUser() {
         String username, password;
 
         // Reset errors.
-        mEmailTxt.setError(null);
+        mUsernameTxt.setError(null);
         mPasswordTxt.setError(null);
         final boolean[] userAuthenticated = {false};
 
         // Store values at the time of the login attempt.
-        username = mEmailTxt.getText().toString();
+        username = mUsernameTxt.getText().toString();
         password = mPasswordTxt.getText().toString();
 
-        boolean cancel = false;
-        View focusView = null;
+        cancel = false;
+        focusView = null;
 
+        // Check for a valid email.
+        if (TextUtils.isEmpty(username)) {
+            mUsernameTxt.setError(getString(R.string.error_field_required));
+            focusView = mUsernameTxt;
+            cancel = true;
+        } else if (!isValidUsername(username)) {
+            mUsernameTxt.setError(getString(R.string.error_invalid_username));
+            focusView = mUsernameTxt;
+            cancel = true;
+        }
 //        // Check for a valid email.
 //        if (TextUtils.isEmpty(email)) {
 //            mEmailTxt.setError(getString(R.string.error_field_required));
@@ -102,7 +169,12 @@ public class LoginActivity extends AppCompatActivity {
 //        }
 
         // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+        if (TextUtils.isEmpty(password)) {
+            mPasswordTxt.setError(getString(R.string.error_field_required));
+            focusView = mPasswordTxt;
+            cancel = true;
+        }
+        if (!isPasswordValid(password)) {
             mPasswordTxt.setError(getString(R.string.error_invalid_password));
             focusView = mPasswordTxt;
             cancel = true;
@@ -138,7 +210,7 @@ public class LoginActivity extends AppCompatActivity {
                                     JSONObject userJson = obj.getJSONObject("user");
 
                                     //creating a new user object
-                                    Customer user = new Customer(
+                                    user = new Customer(
                                             userJson.getInt("id"),
                                             userJson.getString("username"),
                                             userJson.getString("email"),
@@ -147,14 +219,6 @@ public class LoginActivity extends AppCompatActivity {
 
                                     userAuthenticated[0] = true;
 
-                                    //starting the profile activity
-                                    Intent intent = new Intent(getApplicationContext(), DashboardActivity.class);
-                                    intent.putExtra("id", user.getId());
-                                    intent.putExtra("username", user.getUsername());
-                                    intent.putExtra("email", user.getEmail());
-                                    intent.putExtra("gender", user.getGender());
-                                    startActivity(intent);
-                                    finish();
 
                                 } else {
                                     Toast.makeText(getApplicationContext(), obj.getString("message"), Toast.LENGTH_SHORT).show();
@@ -184,7 +248,14 @@ public class LoginActivity extends AppCompatActivity {
 
             if (userAuthenticated[0]) {
                 showProgress(false);
-                startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                //starting the profile activity
+                Intent intent = new Intent(getApplicationContext(), DashboardActivity.class);
+                intent.putExtra("id", user.getId());
+                intent.putExtra("username", user.getUsername());
+                intent.putExtra("email", user.getEmail());
+                intent.putExtra("gender", user.getGender());
+                startActivity(intent);
+                finish();
             } else {
                 Toast.makeText(LoginActivity.this, "email or password incorrect", Toast.LENGTH_LONG).show();
                 showProgress(false);
@@ -238,36 +309,42 @@ public class LoginActivity extends AppCompatActivity {
      * Shows the progress UI and hides the login form.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    private void showProgress(final boolean show) {
-        // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
-        // for very easy animations. If available, use these APIs to fade-in
-        // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-            int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
+    private void showProgress(boolean show) {
 
-            mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-            mLoginFormView.animate().setDuration(shortAnimTime).alpha(
-                    show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-                }
-            });
+        int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
-            mProgressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-            mProgressBar.animate().setDuration(shortAnimTime).alpha(
-                    show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mProgressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-                }
-            });
-        } else {
-            // The ViewPropertyAnimator APIs are not available, so simply show
-            // and hide the relevant UI components.
-            mProgressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-            mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-        }
+        mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
+        mLoginFormView.animate().setDuration(shortAnimTime).alpha(
+                show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
+            }
+        });
+
+        mProgressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+        mProgressBar.animate().setDuration(shortAnimTime).alpha(
+                show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mProgressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+            }
+        });
     }
 
+    @Override
+    public void onClick(View view) {
+        int id = view.getId();
+        switch (id) {
+            case R.id.login_btn:
+                loginUser();
+                break;
+            case R.id.sign_up_btn:
+                startActivity(new Intent(getApplicationContext(), SignupActivity.class));
+                break;
+            case R.id.forget_pass_btn:
+
+                break;
+        }
+    }
 }

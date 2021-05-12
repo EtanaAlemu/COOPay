@@ -10,8 +10,13 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.COOPay">
-        <activity android:name=".DashboardActivity"></activity>
+        android:theme="@style/Theme.COOPay"
+        android:usesCleartextTraffic="true">
+        <activity android:name=".ui.ProfileActivity"></activity>
+        <activity
+            android:name=".ui.SignupActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity android:name=".ui.DashboardActivity" />
         <activity android:name=".MainActivity" />
         <activity
             android:name=".LoginActivity"

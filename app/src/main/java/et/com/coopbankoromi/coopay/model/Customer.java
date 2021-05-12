@@ -29,6 +29,10 @@ public class Customer {
         this.gender = gender;
     }
 
+    public Customer() {
+
+    }
+
     public int getId() {
         return id;
     }
