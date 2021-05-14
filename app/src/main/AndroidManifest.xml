@@ -12,21 +12,24 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.COOPay"
         android:usesCleartextTraffic="true">
-        <activity android:name=".ui.ProfileActivity"></activity>
         <activity
-            android:name=".ui.SignupActivity"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
-        <activity android:name=".ui.DashboardActivity" />
-        <activity android:name=".MainActivity" />
-        <activity
-            android:name=".LoginActivity"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            android:name=".ui.SplashActivity"
+            android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".ui.ProfileActivity" />
+        <activity
+            android:name=".ui.SignupActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity android:name=".controller.DashboardActivity" />
+        <activity android:name=".MainActivity" />
+        <activity
+            android:name=".LoginActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"></activity>
     </application>
 
 </manifest>

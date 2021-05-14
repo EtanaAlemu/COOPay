@@ -22,7 +22,7 @@ public class Customer {
         this.gender = gender;
     }
 
-    public Customer(int id, String username, String email, String gender) {
+    public Customer(int id, String username, String email) {
         this.id = id;
         this.email = email;
         this.username = username;

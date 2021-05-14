@@ -2,7 +2,18 @@ package et.com.coopbankoromi.coopay.helper;
 
 import android.content.Context;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkError;
+import com.android.volley.NetworkResponse;
+import com.android.volley.NoConnectionError;
+import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
+import com.android.volley.VolleyError;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import et.com.coopbankoromi.coopay.R;
 
@@ -72,3 +83,4 @@ public class VolleyErrorHelper {
         return (error instanceof NetworkError || error instanceof NoConnectionError);
     }
 
+}

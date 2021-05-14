@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/coordinatorLayout"
     android:gravity="center"
     android:orientation="vertical"
     tools:context=".LoginActivity">
@@ -13,6 +14,7 @@
     <ProgressBar
         android:id="@+id/login_progress"
         style="?android:attr/progressBarStyleLarge"
+        android:layout_gravity="center"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_marginBottom="8dp"
@@ -27,16 +29,17 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="2"
+            android:layout_weight="1"
             android:background="@drawable/blue_bg"
             android:gravity="center"
             android:orientation="vertical">
 
             <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/my_appcompat_imageview"
+                android:id="@+id/logo"
                 android:layout_width="150dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:transitionName="imageTransition"
                 android:src="@drawable/logo"
                 android:tint="#ffffff" />
 
@@ -45,7 +48,7 @@
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="4">
+            android:layout_weight="2">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -141,6 +144,9 @@
                     android:layout_width="200dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
                     app:cardBackgroundColor="#1566e0"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="8dp">
@@ -184,4 +190,4 @@
         </androidx.core.widget.NestedScrollView>
     </LinearLayout>
 
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

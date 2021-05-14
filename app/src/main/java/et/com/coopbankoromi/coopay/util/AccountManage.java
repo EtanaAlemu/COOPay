@@ -59,8 +59,7 @@ public class AccountManage {
                                 Customer user = new Customer(
                                         userJson.getInt("id"),
                                         userJson.getString("username"),
-                                        userJson.getString("email"),
-                                        userJson.getString("gender")
+                                        userJson.getString("email")
                                 );
 
                                 userAuthenticated[0] = true;

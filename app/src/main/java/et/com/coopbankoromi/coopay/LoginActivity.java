@@ -2,28 +2,35 @@ package et.com.coopbankoromi.coopay;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Intent;
-import android.os.Build;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkError;
+import com.android.volley.NoConnectionError;
+import com.android.volley.ParseError;
 import com.android.volley.Request;
 import com.android.volley.Response;
+import com.android.volley.ServerError;
+import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 
 import org.json.JSONException;
@@ -34,9 +41,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import et.com.coopbankoromi.coopay.controller.DashboardActivity;
 import et.com.coopbankoromi.coopay.helper.VolleySingleton;
 import et.com.coopbankoromi.coopay.model.Customer;
-import et.com.coopbankoromi.coopay.ui.DashboardActivity;
 import et.com.coopbankoromi.coopay.ui.SignupActivity;
 import et.com.coopbankoromi.coopay.util.URLs;
 
@@ -52,6 +59,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     private View focusView;
     private boolean cancel;
     private Customer user;
+    private CoordinatorLayout coordinatorLayout;
 
     public static boolean isValidUsername(String name) {
 
@@ -90,6 +98,9 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         mPasswordTxt = findViewById(R.id.pass_input);
         mProgressBar = findViewById(R.id.login_progress);
         mLoginFormView = findViewById(R.id.login_form);
+        coordinatorLayout = findViewById(R.id.coordinatorLayout);
+
+        showProgress(false);
 
         focusView = null;
         cancel = false;
@@ -121,6 +132,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
                 if (id == EditorInfo.IME_ACTION_DONE || id == EditorInfo.IME_NULL) {
                     loginUser();
+                    InputMethodManager imm = (InputMethodManager) getApplicationContext().getSystemService(Activity.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(coordinatorLayout.getWindowToken(), 0);
                     return true;
                 }
                 return false;
@@ -130,6 +143,11 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         mSignUp.setOnClickListener(this);
         mForgetPassword.setOnClickListener(this);
 
+    }
+
+
+    private boolean isPasswordValid(String password) {
+        return password.length() >= 6;
     }
 
     private void loginUser() {
@@ -157,16 +175,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             focusView = mUsernameTxt;
             cancel = true;
         }
-//        // Check for a valid email.
-//        if (TextUtils.isEmpty(email)) {
-//            mEmailTxt.setError(getString(R.string.error_field_required));
-//            focusView = mEmailTxt;
-//            cancel = true;
-//        } else if (!isEmailValid(email)) {
-//            mEmailTxt.setError(getString(R.string.error_invalid_email));
-//            focusView = mEmailTxt;
-//            cancel = true;
-//        }
 
         // Check for a valid password, if the user entered one.
         if (TextUtils.isEmpty(password)) {
@@ -189,22 +197,18 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             // perform the user login attempt.
             showProgress(true);
 
-
-//            AccountManage accountManage = new AccountManage(this);
-//            userAuthenticated = accountManage.loginUser(username, password);
-
-            StringRequest stringRequest = new StringRequest(Request.Method.POST, URLs.URL_LOGIN,
+            StringRequest stringRequest = new StringRequest(Request.Method.POST, URLs.ROOT_URL,
                     new Response.Listener<String>() {
                         @Override
                         public void onResponse(String response) {
 
+                            showProgress(false);
                             try {
                                 //converting response to json object
                                 JSONObject obj = new JSONObject(response);
 
                                 //if no error in response
                                 if (!obj.getBoolean("error")) {
-                                    Toast.makeText(getApplicationContext(), obj.getString("message"), Toast.LENGTH_SHORT).show();
 
                                     //getting the user from the response
                                     JSONObject userJson = obj.getJSONObject("user");
@@ -213,15 +217,29 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                                     user = new Customer(
                                             userJson.getInt("id"),
                                             userJson.getString("username"),
-                                            userJson.getString("email"),
-                                            userJson.getString("gender")
+                                            userJson.getString("email")
                                     );
 
-                                    userAuthenticated[0] = true;
-
+                                    //starting the profile activity
+                                    Intent intent = new Intent(getApplicationContext(), DashboardActivity.class);
+                                    intent.putExtra("id", user.getId());
+                                    intent.putExtra("username", user.getUsername());
+                                    intent.putExtra("email", user.getEmail());
+                                    startActivity(intent);
+                                    finish();
 
                                 } else {
-                                    Toast.makeText(getApplicationContext(), obj.getString("message"), Toast.LENGTH_SHORT).show();
+                                    Snackbar snackbar = Snackbar
+                                            .make(coordinatorLayout, obj.getString("message"), Snackbar.LENGTH_LONG).setAction("RETRY", new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View view) {
+                                                }
+                                            });
+                                    snackbar.setActionTextColor(Color.RED);
+                                    View sbView = snackbar.getView();
+                                    TextView textView = (TextView) sbView.findViewById(R.id.snackbar_text);
+                                    textView.setTextColor(Color.YELLOW);
+                                    snackbar.show();
                                 }
                             } catch (JSONException e) {
                                 e.printStackTrace();
@@ -231,12 +249,104 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                     new Response.ErrorListener() {
                         @Override
                         public void onErrorResponse(VolleyError error) {
-                            Toast.makeText(getApplicationContext(), error.getMessage(), Toast.LENGTH_SHORT).show();
+
+                            showProgress(false);
+                            if (error instanceof TimeoutError) {
+                                //This indicates that the reuest has either time out or there is no connection
+
+                                Snackbar snackbar = Snackbar
+                                        .make(coordinatorLayout, "request time out", Snackbar.LENGTH_LONG).setAction("RETRY", new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+                                            }
+                                        });
+                                snackbar.setActionTextColor(Color.RED);
+                                View sbView = snackbar.getView();
+                                TextView textView = (TextView) sbView.findViewById(R.id.snackbar_text);
+                                textView.setTextColor(Color.YELLOW);
+                                snackbar.show();
+                            } else if (error instanceof NoConnectionError) {
+                                // Error indicating that there was an Authentication Failure while performing the request
+
+                                Snackbar snackbar = Snackbar
+                                        .make(coordinatorLayout, "no connection", Snackbar.LENGTH_LONG).setAction("RETRY", new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+                                            }
+                                        });
+                                snackbar.setActionTextColor(Color.RED);
+                                View sbView = snackbar.getView();
+                                TextView textView = (TextView) sbView.findViewById(R.id.snackbar_text);
+                                textView.setTextColor(Color.YELLOW);
+                                snackbar.show();
+                            } else if (error instanceof AuthFailureError) {
+                                // Error indicating that there was an Authentication Failure while performing the request
+
+                                Snackbar snackbar = Snackbar
+                                        .make(coordinatorLayout, "authentication failure", Snackbar.LENGTH_LONG).setAction("RETRY", new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+                                            }
+                                        });
+                                snackbar.setActionTextColor(Color.RED);
+                                View sbView = snackbar.getView();
+                                TextView textView = (TextView) sbView.findViewById(R.id.snackbar_text);
+                                textView.setTextColor(Color.YELLOW);
+                                snackbar.show();
+                            } else if (error instanceof ServerError) {
+                                //Indicates that the server responded with a error response
+
+                                Snackbar snackbar = Snackbar
+                                        .make(coordinatorLayout, "server error", Snackbar.LENGTH_LONG).setAction("RETRY", new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+                                            }
+                                        });
+                                snackbar.setActionTextColor(Color.RED);
+                                View sbView = snackbar.getView();
+                                TextView textView = (TextView) sbView.findViewById(R.id.snackbar_text);
+                                textView.setTextColor(Color.YELLOW);
+                                snackbar.show();
+                            } else if (error instanceof NetworkError) {
+                                //Indicates that there was network error while performing the request
+
+                                Snackbar snackbar = Snackbar
+                                        .make(coordinatorLayout, "network error", Snackbar.LENGTH_LONG).setAction("RETRY", new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+                                            }
+                                        });
+                                snackbar.setActionTextColor(Color.RED);
+                                View sbView = snackbar.getView();
+                                TextView textView = (TextView) sbView.findViewById(R.id.snackbar_text);
+                                textView.setTextColor(Color.YELLOW);
+                                snackbar.show();
+                            } else if (error instanceof ParseError) {
+                                // Indicates that the server response could not be parsed
+
+                                Snackbar snackbar = Snackbar
+                                        .make(coordinatorLayout, "server response couldn't be parsed", Snackbar.LENGTH_LONG);
+                                snackbar.show();
+                            } else {
+                                Snackbar snackbar = Snackbar
+                                        .make(coordinatorLayout, "server response couldn't be parsed", Snackbar.LENGTH_LONG).setAction("RETRY", new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+                                            }
+                                        });
+                                snackbar.setActionTextColor(Color.RED);
+                                View sbView = snackbar.getView();
+                                TextView textView = (TextView) sbView.findViewById(R.id.snackbar_text);
+                                textView.setTextColor(Color.YELLOW);
+                                snackbar.show();
+                            }
+
                         }
                     }) {
                 @Override
                 protected Map<String, String> getParams() throws AuthFailureError {
                     Map<String, String> params = new HashMap<>();
+                    params.put("apicall", "login");
                     params.put("username", username);
                     params.put("password", password);
                     return params;
@@ -246,20 +356,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             VolleySingleton.getInstance(this).addToRequestQueue(stringRequest);
 
 
-            if (userAuthenticated[0]) {
-                showProgress(false);
-                //starting the profile activity
-                Intent intent = new Intent(getApplicationContext(), DashboardActivity.class);
-                intent.putExtra("id", user.getId());
-                intent.putExtra("username", user.getUsername());
-                intent.putExtra("email", user.getEmail());
-                intent.putExtra("gender", user.getGender());
-                startActivity(intent);
-                finish();
-            } else {
-                Toast.makeText(LoginActivity.this, "email or password incorrect", Toast.LENGTH_LONG).show();
-                showProgress(false);
-            }
 
 //            mAuth.signInWithEmailAndPassword(email, password)
 //                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
@@ -297,18 +393,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         }
     }
 
-    private boolean isEmailValid(String email) {
-        return email.contains("@");
-    }
-
-    private boolean isPasswordValid(String password) {
-        return password.length() >= 6;
-    }
-
-    /**
-     * Shows the progress UI and hides the login form.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private void showProgress(boolean show) {
 
         int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
@@ -330,6 +414,12 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                 mProgressBar.setVisibility(show ? View.VISIBLE : View.GONE);
             }
         });
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
     }
 
     @Override
